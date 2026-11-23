@@ -1,0 +1,14 @@
+out/
+__pycache__/
+.venv/
+*.pyc
+models/*.joblib
+models/training_report.json
+.DS_Store
+*.zip
+.idea/
+*.iml
+MachineLearningCVE/
+data/MachineLearningCVE/
+data/*.pcap
+data/*.pcap_ISCX.csv

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShiftShield | Threat Scanner</title>
+<style>
+:root{--bg:#f2f4fb;--panel:#ffffff;--ink:#1b2340;--mute:#5f6a8a;--line:#d8ddee;--teal:#3b4cca;--rust:#d6336c;--ok:#12906a;--amber:#b86e00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:1120px;margin:0 auto;padding:20px 18px 60px}a{color:var(--teal)}
+header.brand-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-logo{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#5c6ceb);color:#fff;font-size:18px;box-shadow:0 2px 6px rgba(59,76,202,0.25)}
+.brand-name{font-weight:700;font-size:1.3rem;letter-spacing:-0.02em;color:var(--ink)}
+.brand-name span{color:var(--teal)}
+.brand-tag{font-size:0.75rem;font-weight:600;padding:2px 7px;border-radius:12px;background:#e2e6fa;color:var(--teal);margin-left:6px;vertical-align:middle;text-transform:uppercase;letter-spacing:0.04em}
+nav.nav-links{display:flex;align-items:center;gap:16px;font-size:0.92rem}
+nav.nav-links a{color:var(--mute);text-decoration:none;transition:color .2s;font-weight:500}
+nav.nav-links a:hover{color:var(--teal)}
+nav.nav-links a.active{font-weight:600;color:var(--ink);border-bottom:2px solid var(--teal);padding-bottom:2px}
+h1{font:600 clamp(1.7rem,4vw,2.4rem)/1.15 Georgia,serif;margin:0 0 6px}h2{font:600 1.05rem Georgia,serif;margin:0 0 10px}
+.lead{margin:0 0 18px;color:var(--mute);max-width:75ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+button{font:inherit;padding:8px 16px;border:1px solid var(--teal);background:var(--teal);color:var(--bg);border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;transition:all .15s ease;white-space:nowrap}
+button.ghost{background:transparent;color:var(--teal)}button:disabled{opacity:.65;cursor:not-allowed}
+.spin{display:inline-block;animation:btnspin 1s linear infinite}
+@keyframes btnspin{100%{transform:rotate(360deg)}}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid var(--rust);outline-offset:2px}
+.tabs{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}.tabs button[aria-selected=true]{background:var(--teal);color:var(--bg)}.tabs button[aria-selected=false]{background:transparent;color:var(--teal)}
+input[type=text],textarea{width:100%;font:inherit;padding:9px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)}
+textarea{min-height:130px}.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px}
+
+/* Tables & Text Alignment - Prevents single letter wraps */
+table{border-collapse:collapse;width:100%;font-size:.88rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;word-break:normal}
+th{white-space:nowrap;font-weight:600;color:var(--mute);background:#f8f9fd}
+.n{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mute{color:var(--mute)}.good{color:var(--ok)}.bad{color:var(--rust)}.warn{color:var(--amber)}
+.banner{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}.score{font:700 3rem/1 Georgia,serif}
+.f{display:grid;grid-template-columns:70px 1fr 44px;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)}.f small{display:block;color:var(--mute)}
+.tag{font-weight:600;white-space:nowrap}.high{color:var(--rust)}.medium{color:var(--amber)}.low,.info{color:var(--mute)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:850px){.cols{grid-template-columns:1fr}}
+
+/* Page Summary Table - strict single line labels */
+.summary-table{width:100%;border-collapse:collapse}
+.summary-table td:first-child{width:150px;min-width:140px;white-space:nowrap;font-weight:600;color:var(--mute);vertical-align:top}
+.summary-table td:last-child{word-break:break-word}
+
+/* Redirect Chain Table */
+.chain-table td{white-space:nowrap;padding:7px 12px}
+.chain-table td:last-child{white-space:normal;word-break:break-all}
+
+/* Browser Frame & Visual Preview */
+.browser-frame{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--bg);box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.browser-bar{background:#f1f3f6;padding:8px 12px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.browser-dots{display:flex;gap:5px;align-items:center}
+.browser-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+.dot-red{background:#ff5f56;border:1px solid #e0443e}
+.dot-yellow{background:#ffbd2e;border:1px solid #dea123}
+.dot-green{background:#27c93f;border:1px solid #1aab29}
+.browser-url-bar{flex:1;min-width:240px;background:#ffffff;border:1px solid var(--line);border-radius:4px;padding:4px 10px;font-family:monospace;font-size:.78rem;color:var(--mute);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.browser-actions{display:flex;gap:6px;align-items:center}
+.mode-toggle-btn{font:inherit;font-size:.76rem;font-weight:600;padding:4px 10px;border-radius:4px;border:1px solid var(--line);background:#ffffff;color:var(--mute);cursor:pointer;transition:all .15s;white-space:nowrap}
+.mode-toggle-btn:hover{color:var(--ink);border-color:var(--teal)}
+.mode-toggle-btn.active{background:var(--teal);color:#ffffff;border-color:var(--teal)}
+.browser-viewport{position:relative;cursor:zoom-in;overflow:hidden;display:block;background:#ffffff;min-height:300px}
+.browser-viewport img.shot{width:100%;height:auto;display:block;transition:filter .15s}
+.browser-viewport:hover img.shot{filter:brightness(.98)}
+.browser-zoom-hint{position:absolute;bottom:10px;right:10px;background:rgba(15,20,30,.8);color:#ffffff;font-size:.74rem;padding:4px 10px;border-radius:4px;pointer-events:none;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.shot-empty-card{border:1px dashed var(--line);border-radius:8px;padding:32px 18px;text-align:center;background:var(--bg)}
+.shot-empty-icon{font-size:2.4rem;margin-bottom:8px;opacity:.7}
+
+/* Lightbox Modal */
+.shot-lightbox{position:fixed;inset:0;background:rgba(15,20,30,.85);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(3px)}
+.shot-lightbox.open{display:flex}
+.shot-lightbox-content{max-width:92vw;max-height:92vh;background:var(--panel);border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 12px 48px rgba(0,0,0,.5)}
+.shot-lightbox-head{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:var(--bg)}
+.shot-lightbox-body{overflow:auto;padding:12px;max-height:calc(92vh - 54px)}
+.shot-lightbox-body img{max-width:100%;height:auto;border-radius:4px;display:block}
+
+.st{display:flex;gap:10px;padding:3px 0}.st b{width:76px}
+details{margin:8px 0}summary{cursor:pointer;font-weight:600}pre{white-space:pre-wrap;word-break:break-all;margin:6px 0;font-size:.85rem;max-height:260px;overflow:auto}
+[hidden]{display:none !important}
+
+/* Domain Section */
+.dom-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px}
+.dom-kpi-bar{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.dom-kpi-card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 14px}
+.dom-kpi-card small{display:block;color:var(--mute);font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+.dom-kpi-card b{font-size:1.3rem;line-height:1.2;color:var(--ink)}
+.dom-ratio-bar{height:6px;background:var(--line);border-radius:3px;overflow:hidden;margin-top:6px;display:flex}
+.dom-ratio-first{background:var(--ok);height:100%}
+.dom-ratio-third{background:var(--teal);height:100%}
+.dom-toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+.dom-search{flex:1;min-width:200px;font:inherit;padding:7px 11px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font-size:.88rem}
+.dom-filter-btn{font:inherit;font-size:.82rem;padding:5px 12px;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.dom-filter-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+.dom-actions{display:flex;gap:8px;align-items:center;margin-left:auto;flex-wrap:wrap}
+.view-toggle{display:inline-flex;background:var(--line);border-radius:6px;padding:2px;gap:2px}
+.view-toggle button{font:inherit;border:none;border-radius:4px;background:transparent;color:var(--mute);padding:5px 13px;font-size:.82rem;font-weight:600;cursor:pointer;transition:all .15s;white-space:nowrap}
+.view-toggle button:hover{color:var(--ink)}
+.view-toggle button.active{background:#ffffff;color:var(--teal);box-shadow:0 1px 3px rgba(0,0,0,.15)}
+.btn-copy-iocs{font:inherit;padding:5px 12px;font-size:.82rem;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s;white-space:nowrap}
+.btn-copy-iocs:hover{border-color:var(--teal);color:var(--teal)}
+.dom-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(310px,1fr));gap:12px}
+.dom-card{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:10px;transition:all .2s ease;box-shadow:0 1px 3px rgba(0,0,0,.03)}
+.dom-card:hover{border-color:var(--teal);box-shadow:0 4px 12px rgba(59,76,202,.08);transform:translateY(-1px)}
+.dom-card.flagged{border-color:rgba(214,51,108,.35);background:linear-gradient(to bottom,#fffcfc,#ffffff)}
+.dom-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.dom-avatar{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:15px;flex-shrink:0}
+.dom-avatar.first{background:#e6f4ea;color:var(--ok);border:1px solid rgba(18,144,106,.2)}
+.dom-avatar.third{background:#eef1f6;color:var(--teal);border:1px solid rgba(59,76,202,.15)}
+.dom-avatar.flagged{background:#fde8e8;color:var(--rust);border:1px solid rgba(214,51,108,.3)}
+.dom-host-info{flex:1;min-width:0}
+.dom-host-title{font-weight:700;font-size:.95rem;word-break:normal;overflow-wrap:break-word;color:var(--ink);display:flex;align-items:center;gap:6px;line-height:1.3}
+.dom-host-title a{color:inherit;text-decoration:none}
+.dom-host-title a:hover{color:var(--teal);text-decoration:underline}
+.badge-party{display:inline-block;padding:2px 8px;border-radius:12px;font-size:.74rem;font-weight:600;letter-spacing:.02em;white-space:nowrap}
+.badge-first{background:#e6f4ea;color:var(--ok)}
+.badge-third{background:#eef1f6;color:var(--mute)}
+.ip-list{display:flex;flex-wrap:wrap;gap:4px}
+.ip-chip{font-family:monospace;font-size:.76rem;background:var(--bg);border:1px solid var(--line);padding:2px 6px;border-radius:4px;color:var(--ink);cursor:pointer;transition:border-color .15s;white-space:nowrap}
+.ip-chip:hover{border-color:var(--teal);color:var(--teal)}
+.chip-flag{display:inline-flex;align-items:center;gap:4px;font-size:.74rem;font-weight:600;padding:2px 7px;border-radius:4px;background:#fde8e8;color:var(--rust);border:1px solid rgba(214,51,108,.25);white-space:nowrap}
+.chip-flag.clean{background:#e6f4ea;color:var(--ok);border:1px solid rgba(18,144,106,.25);white-space:nowrap}
+.req-bar-wrap{display:flex;align-items:center;gap:6px}
+.req-bar{flex:1;height:5px;background:var(--line);border-radius:3px;overflow:hidden}
+.req-fill{height:100%;background:var(--teal);border-radius:3px}
+.dom-card-footer{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--line);font-size:.8rem;color:var(--mute);margin-top:auto}
+.btn-inspect{background:transparent;border:1px solid var(--line);padding:4px 12px;border-radius:4px;font-size:.78rem;font-weight:600;cursor:pointer;color:var(--ink);transition:all .15s;white-space:nowrap}
+.btn-inspect:hover{border-color:var(--teal);color:var(--teal)}
+
+/* Domain Table View - Single line alignment */
+.dom-table{min-width:750px;width:100%;border-collapse:collapse}
+.dom-table th{white-space:nowrap;padding:9px 12px;background:#f8f9fd}
+.dom-table td{padding:9px 12px;white-space:nowrap;vertical-align:middle}
+.dom-table td.dom-host-cell{white-space:nowrap;font-weight:600}
+.dom-table td.dom-host-cell a{color:var(--ink);text-decoration:none}
+.dom-table td.dom-host-cell a:hover{color:var(--teal);text-decoration:underline}
+.dom-table td.dom-ip-cell{white-space:normal;min-width:240px}
+.dom-table tr:hover td{background:rgba(59,76,202,.03)}
+.dom-table tr.flagged td{background:rgba(214,51,108,.02)}
+</style></head><body><main>
+<header class="brand-nav">
+  <div class="brand">
+    <div class="brand-logo">🛡️</div>
+    <div>
+      <span class="brand-name">Shift<span>Shield</span></span>
+      <span class="brand-tag">Threat Scanner</span>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a href="/">IDS Dashboard</a>
+    <a href="/scanner" class="active">Threat Scanner</a>
+  </nav>
+</header>
+<h1>ShiftShield Threat Scanner</h1>
+<p class="lead">Check a website, public or private IP address, local server, file or message before you trust it. Checks run side by side and report as they finish. Files are never opened or run, and pages are inspected safely with full public and private network support.</p>
+
+<section><div class="tabs" role="tablist"><button role="tab" id="t1" aria-selected="true">Website or IP</button><button role="tab" id="t2" aria-selected="false">File</button><button role="tab" id="t3" aria-selected="false">Message text</button></div>
+<div id="p1"><label for="url" class="mute">Paste a URL, domain, private IP or localhost</label><input type="text" id="url" placeholder="https://example.com/login, 192.168.1.1, or localhost:3000" autocomplete="off"><div class="bar"><button id="go1">Scan website</button><button id="c1" class="ghost">Clear</button></div></div>
+<div id="p2" hidden><label for="file" class="mute">Choose a file (up to 25 MB)</label><input type="file" id="file"><div class="bar"><button id="go2">Scan file</button><button id="c2" class="ghost">Clear</button></div></div>
+<div id="p3" hidden><label for="txt" class="mute">Paste an email, SMS or chat message</label><textarea id="txt"></textarea><div class="bar"><button id="go3">Check for spam and phishing</button><button id="c3" class="ghost">Clear</button></div></div>
+<p id="err" class="bad" role="alert"></p></section>
+
+<section id="prog" hidden><h2>Scan progress</h2><div id="stages"></div></section>
+<div id="out"></div>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let curId=null,poll=null;
+[1,2,3].forEach(i=>$('t'+i).onclick=()=>{[1,2,3].forEach(j=>{$('t'+j).setAttribute('aria-selected',j===i);$('p'+j).hidden=j!==i})});
+function clearAll(){clearInterval(poll);busy(false);$('url').value='';$('file').value='';$('txt').value='';$('out').innerHTML='';$('err').textContent='';$('prog').hidden=true;curId=null}
+['c1','c2','c3'].forEach(i=>$(i).onclick=()=>{clearAll();$(i==='c1'?'url':i==='c2'?'file':'txt').focus()});
+const fmtB=n=>n>1e6?(n/1e6).toFixed(1)+' MB':n>1e3?(n/1e3).toFixed(1)+' KB':n+' B';
+function fail(m){$('err').textContent=m;$('prog').hidden=true}
+function busy(b,btnId){
+ ['go1','go2','go3'].forEach(i=>{const btn=$(i);if(btn)btn.disabled=b});
+ const g1=$('go1'),g2=$('go2'),g3=$('go3');
+ if(g1){
+  if(b&&(!btnId||btnId==='go1'))g1.innerHTML='<span class="spin">⏳</span> Scanning...';
+  else g1.textContent='Scan website';
+ }
+ if(g2){
+  if(b&&btnId==='go2')g2.innerHTML='<span class="spin">⏳</span> Analysing...';
+  else g2.textContent='Scan file';
+ }
+ if(g3){
+  if(b&&btnId==='go3')g3.innerHTML='<span class="spin">⏳</span> Checking...';
+  else g3.textContent='Check for spam and phishing';
+ }
+}
+async function j(u,o){
+ const r=await fetch(u,o);
+ if(!r.ok){
+  let msg='Server returned HTTP '+r.status;
+  try{const d=await r.json();if(d&&d.error)msg=d.error;}catch(x){}
+  throw new Error(msg);
+ }
+ return r.json();
+}
+$('go1').onclick=async()=>{
+ let t=$('url').value.trim();
+ t=t.replace(/^["'`]|["'`]$/g,'').trim();
+ if(!t){$('url').focus();return fail('Enter a URL, domain or IP address to scan.');}
+ fail('');busy(true,'go1');$('out').innerHTML='';$('prog').hidden=false;$('stages').innerHTML='<p class="mute">Initiating security scan...</p>';
+ clearInterval(poll);
+ try{
+  const res=await j('/api/scan/url?target='+encodeURIComponent(t),{method:'POST'});
+  if(!res||res.kind==='error'||res.error||!res.id){
+   busy(false);
+   return fail(res?(res.error||'Scan could not be started.'):'No response from scan engine.');
+  }
+  const id=res.id;
+  curId=id;
+  let pollCount=0;
+  const maxPolls=70;
+  poll=setInterval(async()=>{
+   try{
+    pollCount++;
+    if(pollCount>maxPolls){
+     clearInterval(poll);
+     busy(false);
+     fail('Scan timed out. Target host took too long to respond.');
+     return;
+    }
+    const s=await j('/api/scan/status?id='+encodeURIComponent(id));
+    if(!s||s.error){
+     clearInterval(poll);
+     busy(false);
+     fail(s?s.error:'Unknown scan status.');
+     return;
+    }
+    if(Array.isArray(s.stages)&&s.stages.length){
+     $('stages').innerHTML=s.stages.map(x=>`<div class="st"><b class="${x.state==='done'?'good':x.state==='failed'?'bad':'mute'}">${esc(x.state)}</b><span>${esc(x.name)}</span></div>`).join('');
+    }
+    if(s.done){
+     clearInterval(poll);
+     busy(false);
+     $('prog').hidden=true;
+     show(s.result);
+    }
+   }catch(pollErr){
+    if(pollCount>15){
+     clearInterval(poll);
+     busy(false);
+     fail('Communication error with scanner: '+(pollErr.message||pollErr));
+    }
+   }
+  },700);
+ }catch(e){
+  busy(false);
+  fail('Could not reach ShiftShield scanner: '+(e.message||e)+'. Is the Java backend running on http://localhost:8081?');
+ }
+};
+$('url').onkeydown=e=>{if(e.key==='Enter'&&!$('go1').disabled)$('go1').click()};
+$('go2').onclick=async()=>{
+ const f=$('file').files[0];if(!f){$('file').focus();return fail('Choose a file first.');}
+ fail('');busy(true,'go2');$('out').innerHTML='<p class="mute">Analysing file...</p>';
+ try{show(await j('/api/scan/file',{method:'POST',headers:{'X-Filename':encodeURIComponent(f.name)},body:f}))}catch(e){fail('Scan failed: '+e.message)}finally{busy(false);}
+};
+$('go3').onclick=async()=>{
+ const t=$('txt').value.trim();if(!t){$('txt').focus();return fail('Paste some text first.');}
+ fail('');busy(true,'go3');
+ try{show(await j('/api/scan/text',{method:'POST',body:t}))}catch(e){fail('Scan failed: '+e.message)}finally{busy(false);}
+};
+const list=(a,empty)=>a&&a.length?`<ul>${a.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`:`<p class="mute">${empty}</p>`;
+function vclass(s){return s>=60?'bad':s>=25?'warn':'good'}
+function head(r,sub){return `<section><div class="banner"><div class="score ${vclass(r.score)}">${r.score}</div><div><h2 style="margin:0" class="${vclass(r.score)}">${esc(r.verdict)}</h2><div class="mute">Risk score out of 100. ${sub||''}</div></div></div></section>`}
+function findings(r){return `<section><h2>Why this score</h2>${r.findings.length?r.findings.map(f=>`<div class="f"><span class="tag ${esc(f.sev)}">${esc(f.sev)}</span><div>${esc(f.title)}<small>${esc(f.detail)}</small></div><span class="n">${f.pts?'+'+f.pts:''}</span></div>`).join(''):'<p class="mute">No suspicious signs were found.</p>'}</section>`}
+
+function domSection(r){
+ const doms=r.domains||[];
+ if(!doms.length)return `<section><h2>Domain connections</h2><p class="mute">No external or third-party domain connections detected.</p></section>`;
+ const total=doms.length;
+ const firsts=doms.filter(d=>d.party==='first-party').length;
+ const thirds=doms.filter(d=>d.party!=='first-party').length;
+ const flagged=doms.filter(d=>d.flags&&d.flags.length).length;
+ const maxReq=Math.max(...doms.map(d=>d.requests||1),1);
+ const allIps=new Set();
+ doms.forEach(d=>{if(d.ips)d.ips.split(',').forEach(ip=>{if(ip.trim())allIps.add(ip.trim());});});
+ const firstRatio=total?Math.round((firsts/total)*100):0;
+ const thirdRatio=100-firstRatio;
+
+ return `<section id="dom-section">
+  <div class="dom-header">
+    <div>
+      <h2 style="margin:0 0 4px">Domain Connections & Infrastructure</h2>
+      <div class="mute" style="font-size:.85rem">Real-time analysis of first-party and third-party hostnames contacted by this page.</div>
+    </div>
+  </div>
+
+  <div class="dom-kpi-bar">
+    <div class="dom-kpi-card">
+      <small>Total Domains</small>
+      <b>${total}</b>
+      <div class="dom-ratio-bar" title="${firsts} 1st-party (${firstRatio}%), ${thirds} 3rd-party (${thirdRatio}%)">
+        <div class="dom-ratio-first" style="width:${firstRatio}%"></div>
+        <div class="dom-ratio-third" style="width:${thirdRatio}%"></div>
+      </div>
+    </div>
+    <div class="dom-kpi-card">
+      <small>Distribution</small>
+      <div style="font-size:.9rem;margin-top:2px">
+        <span class="good"><b>${firsts}</b> 1st-party</span> &bull; <span style="color:var(--teal)"><b>${thirds}</b> 3rd-party</span>
+      </div>
+      <div class="mute" style="font-size:.76rem;margin-top:4px">${thirdRatio}% external services</div>
+    </div>
+    <div class="dom-kpi-card">
+      <small>Resolved Endpoints</small>
+      <b>${allIps.size}</b>
+      <div class="mute" style="font-size:.76rem;margin-top:4px">Unique IP addresses</div>
+    </div>
+    <div class="dom-kpi-card ${flagged?'bad':''}">
+      <small>Security Posture</small>
+      <b>${flagged?`<span class="bad">⚠️ ${flagged} Flagged</span>`:`<span class="good">✓ Clean</span>`}</b>
+      <div class="mute" style="font-size:.76rem;margin-top:4px">${flagged?'Anomalous host patterns':'No suspicious traits'}</div>
+    </div>
+  </div>
+
+  <div class="dom-toolbar">
+    <input type="text" id="df-input" class="dom-search" placeholder="Search domains, IPs, or flags (e.g. cloudflare, punycode, 104.21)..." aria-label="Search domains">
+    <div class="bar" style="margin:0;gap:6px">
+      <button type="button" class="dom-filter-btn active" data-f="all">All (${total})</button>
+      <button type="button" class="dom-filter-btn" data-f="third">3rd-Party (${thirds})</button>
+      <button type="button" class="dom-filter-btn" data-f="first">1st-Party (${firsts})</button>
+      ${flagged?`<button type="button" class="dom-filter-btn bad" data-f="flagged">⚠️ Flagged (${flagged})</button>`:''}
+    </div>
+    <div class="dom-actions">
+      <button type="button" id="btn-copy-iocs" class="btn-copy-iocs" title="Copy all domains and IP addresses to clipboard">📋 <span>Copy IoCs</span></button>
+      <div class="view-toggle">
+        <button type="button" id="vt-cards" class="active" title="Card grid view">⊞ Cards</button>
+        <button type="button" id="vt-table" title="Data table view">☰ Table</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cards Grid View -->
+  <div id="dom-cards-container" class="dom-card-grid">
+    ${doms.map(d=>{
+      const isFirst = d.party === 'first-party';
+      const hasFlags = d.flags && d.flags.length > 0;
+      const initial = (d.host || '?').charAt(0).toUpperCase();
+      const ipList = d.ips ? d.ips.split(',').map(s=>s.trim()).filter(Boolean) : [];
+      const pct = Math.max(8, Math.round((d.requests / maxReq) * 100));
+      return `
+      <div class="dom-card dom-item ${hasFlags?'flagged':''}" data-party="${isFirst?'first':'third'}" data-flagged="${hasFlags}">
+        <div class="dom-card-head">
+          <div class="dom-avatar ${hasFlags?'flagged':(isFirst?'first':'third')}">${initial}</div>
+          <div class="dom-host-info">
+            <div class="dom-host-title">
+              <a href="https://${esc(d.host)}" target="_blank" rel="noopener noreferrer">${esc(d.host)}</a>
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">
+              <span class="badge-party ${isFirst?'badge-first':'badge-third'}">${isFirst?'First Party':'Third Party'}</span>
+              ${hasFlags ? d.flags.map(f=>`<span class="chip-flag">⚠️ ${esc(f)}</span>`).join('') : '<span class="chip-flag clean">✓ clean</span>'}
+            </div>
+          </div>
+        </div>
+        <div style="margin:4px 0">
+          <div class="mute" style="font-size:.74rem;text-transform:uppercase;margin-bottom:4px">Resolved IP Addresses (${ipList.length})</div>
+          <div class="ip-list">
+            ${ipList.length ? ipList.map(ip=>`<span class="ip-chip" data-copy="${esc(ip)}" title="Click to copy IP">${esc(ip)}</span>`).join('') : '<span class="mute" style="font-size:.78rem">No IPs resolved</span>'}
+          </div>
+        </div>
+        <div class="dom-card-footer">
+          <div style="flex:1;min-width:0;margin-right:12px">
+            <div class="req-bar-wrap">
+              <span style="font-size:.76rem;color:var(--ink);font-weight:600">${d.requests} reqs</span>
+              <div class="req-bar"><div class="req-fill" style="width:${pct}%"></div></div>
+            </div>
+          </div>
+          <button type="button" class="btn-inspect" data-inspect="${esc(d.host)}">Inspect</button>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+
+  <!-- Data Table View - single line headers & cells -->
+  <div id="dom-table-container" style="display:none;overflow-x:auto">
+    <table class="dom-table">
+      <thead>
+        <tr>
+          <th style="min-width:180px">Hostname</th>
+          <th style="min-width:110px">Classification</th>
+          <th class="n" style="min-width:80px">Requests</th>
+          <th style="min-width:240px">IP Addresses</th>
+          <th style="min-width:120px">Security Flags</th>
+          <th style="min-width:80px;text-align:center">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${doms.map(d=>{
+          const isFirst = d.party === 'first-party';
+          const hasFlags = d.flags && d.flags.length > 0;
+          const ipList = d.ips ? d.ips.split(',').map(s=>s.trim()).filter(Boolean) : [];
+          return `
+          <tr class="dom-item ${hasFlags?'flagged':''}" data-party="${isFirst?'first':'third'}" data-flagged="${hasFlags}">
+            <td class="dom-host-cell"><a href="https://${esc(d.host)}" target="_blank" rel="noopener noreferrer">${esc(d.host)}</a></td>
+            <td><span class="badge-party ${isFirst?'badge-first':'badge-third'}">${isFirst?'First Party':'Third Party'}</span></td>
+            <td class="n"><b>${d.requests}</b></td>
+            <td class="dom-ip-cell"><div class="ip-list">${ipList.map(ip=>`<span class="ip-chip" data-copy="${esc(ip)}" title="Click to copy">${esc(ip)}</span>`).join('')||'<span class="mute">none</span>'}</div></td>
+            <td>${hasFlags?d.flags.map(f=>`<span class="chip-flag">⚠️ ${esc(f)}</span>`).join(' '):'<span class="good" style="font-weight:600">✓ Clean</span>'}</td>
+            <td style="text-align:center"><button type="button" class="btn-inspect" data-inspect="${esc(d.host)}">Inspect</button></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <p id="dom-empty" class="mute" style="text-align:center;padding:20px;display:none">No connected domains match your search or filter.</p>
+ </section>`;
+}
+
+function show(r){
+ const o=$('out');
+ if(r.kind==='error')return o.innerHTML=`<section><p class="bad">${esc(r.error)}</p></section>`;
+ if(r.kind==='text')return o.innerHTML=head(r)+findings(r)+`<p class="mute">No scanner catches everything. If a message asks for money, codes or personal details, or offers easy money, treat it as a scam.</p><section><h2>Links found</h2>${list(r.urls,'No links in the message.')}</section>`;
+ if(r.kind==='file')return o.innerHTML=head(r,esc(r.name))+findings(r)+`<section><h2>File details</h2><table><tr><td>Detected type</td><td>${esc(r.type)}</td></tr><tr><td>Size</td><td>${fmtB(r.size)}</td></tr><tr><td>Entropy</td><td>${r.entropy} of 8</td></tr><tr><td>SHA-256</td><td>${esc(r.sha256)}</td></tr><tr><td>MD5</td><td>${esc(r.md5)}</td></tr></table><p class="mute">Search the SHA-256 on a public reputation service to see if others have reported it.</p>${r.entries.length?`<details><summary>Archive contents (${r.entries.length})</summary>${list(r.entries,'')}</details>`:''}${r.urls.length?`<details><summary>URLs inside the file (${r.urls.length})</summary>${list(r.urls,'')}</details>`:''}</section>`;
+
+ const t=r.tls,isHttps=(r.finalUrl||r.target||'').startsWith('https://');
+ const pageUrl=esc(r.finalUrl||r.target);
+
+ const sh=`
+<div class="browser-frame">
+  <div class="browser-bar">
+    <div class="browser-dots">
+      <span class="browser-dot dot-red"></span>
+      <span class="browser-dot dot-yellow"></span>
+      <span class="browser-dot dot-green"></span>
+    </div>
+    <div class="browser-url-bar" title="${pageUrl}">
+      <span class="ssl-icon">${isHttps?'🔒':'⚠️'}</span>
+      <span>${pageUrl}</span>
+    </div>
+    <div class="browser-actions">
+      <button type="button" class="mode-toggle-btn active" id="btn-mode-shot" onclick="setPreviewMode('shot')">📸 Screenshot</button>
+      <button type="button" class="mode-toggle-btn" id="btn-mode-live" onclick="setPreviewMode('live')">🌐 Live Preview</button>
+      <button type="button" class="mode-toggle-btn" onclick="openShotModal('/api/scan/shot?id=${esc(r.id)}', '${pageUrl}')">🔍 Fullscreen</button>
+    </div>
+  </div>
+  <div id="preview-shot-box" class="browser-viewport" onclick="openShotModal('/api/scan/shot?id=${esc(r.id)}', '${pageUrl}')">
+    ${r.hasShot ? `
+      <img class="shot" alt="Screenshot of ${pageUrl} captured safely in headless browser" src="/api/scan/shot?id=${esc(r.id)}">
+      <div class="browser-zoom-hint">🔍 Expand to Full Resolution (1280×900)</div>
+    ` : `
+      <div class="shot-empty-card">
+        <div class="shot-empty-icon">📷</div>
+        <b style="display:block;margin-bottom:6px">Visual Preview Pending or Incomplete</b>
+        <p class="mute" style="margin:0 0 10px;font-size:.88rem">Headless capture could not render this target. Switch to <b>Live Preview</b> above to view the page inside an isolated sandbox.</p>
+        <button type="button" class="mode-toggle-btn active" onclick="setPreviewMode('live')" style="margin:0 auto">Switch to Live Preview 🌐</button>
+      </div>
+    `}
+  </div>
+  <div id="preview-live-box" style="display:none;background:#ffffff">
+    <iframe id="preview-iframe" src="${pageUrl}" sandbox="allow-scripts allow-forms allow-same-origin" style="width:100%;height:520px;border:none;display:block"></iframe>
+    <div style="padding:8px 14px;background:#f8f9fd;border-top:1px solid var(--line);font-size:.78rem;color:var(--mute);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <span>🛡️ Rendered inside an isolated browser sandbox to safely inspect web pages.</span>
+      <a href="${pageUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:none;font-weight:600">Open in external tab ↗</a>
+    </div>
+  </div>
+</div>`;
+
+ o.innerHTML=head(r,`${pageUrl}`)+`<section><h2>Your feedback teaches the model</h2><p class="mute" style="margin:0 0 8px">The learned risk model starts with expert weights and updates after each label (${r.feedbackCount} so far). Learned risk for this page: <b>${r.learned}%</b>.</p><div class="bar" style="margin:0"><button class="ghost" data-l="1">This is malicious</button><button class="ghost" data-l="0">This is safe</button><span id="fb" class="mute"></span></div></section>`
+ +findings(r)
+ +`<section id="visual-preview-section">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <h2 style="margin:0">What the page looks like</h2>
+      <div class="mute" style="font-size:.84rem">Safe visual rendering of ${pageUrl}</div>
+    </div>
+    ${sh}
+  </section>`
+ +`<div class="cols">
+    <section>
+      <h2>Page summary</h2>
+      <table class="summary-table">
+        <tr><td>Title</td><td>${esc(r.title)||'none'}</td></tr>
+        <tr><td>Status</td><td><b>${r.status||'no response'}</b></td></tr>
+        <tr><td>Content type</td><td>${esc(r.contentType)}</td></tr>
+        <tr><td>Downloaded</td><td>${fmtB(r.bytes)}</td></tr>
+        <tr><td>TLS certificate</td><td>${t.ok?`Issued by ${esc(t.issuer)}<br>${t.ageDays} days old, ${t.expired?'expired':'valid until '+esc(t.to.slice(0,10))}`:`<span class="${t.error==='Site does not use HTTPS'?'warn':'bad'}">${esc(t.error)}</span>`}</td></tr>
+      </table>
+      ${Object.keys(r.headers).length?`<details><summary>Response headers</summary><pre>${esc(Object.entries(r.headers).map(([k,v])=>k+': '+v).join('\n'))}</pre></details>`:''}
+    </section>
+    <section>
+      <h2>Redirect chain</h2>
+      <table class="chain-table">
+        <thead>
+          <tr>
+            <th style="width:70px">Status</th>
+            <th>URL</th>
+            <th>Goes to</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${r.chain.map(c=>`<tr><td><b>${esc(c.status)}</b></td><td>${esc(c.url)}</td><td>${esc(c.location)}</td></tr>`).join('')||'<tr><td colspan="3" class="mute">No response received.</td></tr>'}
+        </tbody>
+      </table>
+    </section>
+  </div>`
+ +domSection(r)
+ +`<div class="cols">
+    <section>
+      <h2>Scripts</h2>
+      <p class="mute" style="margin:0">${r.scripts.inline} inline, ${r.scripts.external.length} external. Obfuscation signs: ${r.scripts.obfuscation.length?esc(r.scripts.obfuscation.join(', ')):'none'}.</p>
+      ${list(r.scripts.external,'No external scripts.')}
+    </section>
+    <section>
+      <h2>Forms and frames</h2>
+      ${r.forms.length?`<table><thead><tr><th>Sends to</th><th>Method</th><th>Password</th></tr></thead><tbody>${r.forms.map(f=>`<tr><td class="${f.external&&f.password?'bad':''}">${esc(f.action||'(same page)')}</td><td>${esc(f.method)}</td><td>${f.password?'yes':'no'}</td></tr>`).join('')}</tbody></table>`:'<p class="mute">No forms.</p>'}
+      ${list(r.iframes.map(x=>'iframe: '+(x||'(inline)')),'No iframes.')}
+    </section>
+  </div>`
+ +`<section>
+    <h2>Requests made by the page (${r.requests.length})</h2>
+    ${r.requests.length?`<input type="text" id="rf" placeholder="Filter requests" aria-label="Filter requests"><pre id="rl">${esc(r.requests.join('\n'))}</pre>`:'<p class="mute">Live request capture needs Chrome or Edge on this computer.</p>'}
+  </section>`;
+
+ o.querySelectorAll('[data-l]').forEach(b=>b.onclick=async()=>{const x=await j(`/api/scan/feedback?id=${esc(r.id)}&label=${b.dataset.l}`,{method:'POST'});$('fb').textContent=`Learned. This page is now rated ${x.learned}% risky (${x.feedbackCount} labels in total).`});
+ const rf=$('rf');if(rf)rf.oninput=()=>{$('rl').textContent=r.requests.filter(x=>x.toLowerCase().includes(rf.value.toLowerCase())).join('\n')};
+
+ // Wire up Domain Connections UI controls
+ const df=$('df-input'),domBtns=o.querySelectorAll('.dom-filter-btn'),cardsBox=$('dom-cards-container'),tableBox=$('dom-table-container'),emptyNote=$('dom-empty');
+ let activeDomFilter='all',currentView='cards';
+
+ const filterDomItems=()=>{
+   const q=(df?df.value:'').toLowerCase().trim();
+   let matchCount=0;
+   const updateContainer=(container,isCurrent)=>{
+     if(!container)return;
+     container.querySelectorAll('.dom-item').forEach(el=>{
+       const text=el.textContent.toLowerCase(),party=el.dataset.party,flagged=el.dataset.flagged==='true';
+       const matchesQ=!q||text.includes(q);
+       const matchesF=activeDomFilter==='all'||(activeDomFilter==='third'&&party==='third')||(activeDomFilter==='first'&&party==='first')||(activeDomFilter==='flagged'&&flagged);
+       const show=matchesQ&&matchesF;
+       el.style.display=show?'':'none';
+       if(isCurrent&&show)matchCount++;
+     });
+   };
+   updateContainer(cardsBox,currentView==='cards');
+   updateContainer(tableBox,currentView==='table');
+   if(emptyNote)emptyNote.style.display=matchCount>0?'none':'block';
+ };
+
+ if(df)df.oninput=filterDomItems;
+ domBtns.forEach(btn=>btn.onclick=()=>{domBtns.forEach(b=>b.classList.remove('active'));btn.classList.add('active');activeDomFilter=btn.dataset.f;filterDomItems()});
+
+ // View Switcher (Cards vs Table)
+ const vtCards=$('vt-cards'),vtTable=$('vt-table');
+ function setView(mode){
+   currentView=mode;
+   if(mode==='cards'){
+     if(cardsBox)cardsBox.style.display='grid';
+     if(tableBox)tableBox.style.display='none';
+     if(vtCards)vtCards.classList.add('active');
+     if(vtTable)vtTable.classList.remove('active');
+   }else{
+     if(cardsBox)cardsBox.style.display='none';
+     if(tableBox)tableBox.style.display='block';
+     if(vtTable)vtTable.classList.add('active');
+     if(vtCards)vtCards.classList.remove('active');
+   }
+   filterDomItems();
+ }
+ if(vtCards)vtCards.onclick=()=>setView('cards');
+ if(vtTable)vtTable.onclick=()=>setView('table');
+
+ // Inspect buttons: scroll and filter live requests
+ o.querySelectorAll('[data-inspect]').forEach(btn=>{
+   btn.onclick=()=>{
+     const host=btn.dataset.inspect;
+     if(rf){rf.value=host;rf.dispatchEvent(new Event('input'));rf.scrollIntoView({behavior:'smooth',block:'center'});rf.focus();}
+   };
+ });
+
+ // Copy IP chips
+ o.querySelectorAll('.ip-chip[data-copy]').forEach(chip=>{
+   chip.onclick=e=>{
+     e.stopPropagation();
+     const val=chip.dataset.copy;
+     navigator.clipboard.writeText(val);
+     const orig=chip.textContent;
+     chip.textContent='✓ copied';
+     setTimeout(()=>chip.textContent=orig,1200);
+   };
+ });
+
+ // Copy all IoCs
+ const btnIoC=$('btn-copy-iocs');
+ if(btnIoC){
+   btnIoC.onclick=()=>{
+     const doms=r.domains||[];
+     const lines=['# ShiftShield IoC Domain & Network Report','Target: '+(r.finalUrl||r.target),'Timestamp: '+new Date().toISOString(),'','## Contacted Hosts:'];
+     doms.forEach(d=>lines.push(`- Host: ${d.host} | Type: ${d.party} | Requests: ${d.requests} | IPs: ${d.ips||'none'} | Flags: ${(d.flags||[]).join(', ')||'clean'}`));
+     navigator.clipboard.writeText(lines.join('\n'));
+     const orig=btnIoC.innerHTML;
+     btnIoC.innerHTML='✓ <span>Copied!</span>';
+     setTimeout(()=>btnIoC.innerHTML=orig,2000);
+   };
+ }
+}
+
+// Lightbox modal functions
+window.openShotModal=function(src,title){
+  const m=$('shot-modal'),img=$('shot-modal-img'),t=$('shot-modal-title'),dl=$('shot-modal-download');
+  if(m&&img){
+    img.src=src;
+    if(t)t.textContent=title||'Page Screenshot';
+    if(dl)dl.href=src;
+    m.classList.add('open');
+  }
+};
+window.closeShotModal=function(e){
+  if(!e||e.target.id==='shot-modal'||e.target.dataset.close){
+    const m=$('shot-modal');
+    if(m)m.classList.remove('open');
+  }
+};
+window.setPreviewMode=function(mode){
+  const shotBox=$('preview-shot-box'),liveBox=$('preview-live-box');
+  const bShot=$('btn-mode-shot'),bLive=$('btn-mode-live');
+  if(mode==='shot'){
+    if(shotBox)shotBox.style.display='block';
+    if(liveBox)liveBox.style.display='none';
+    if(bShot)bShot.classList.add('active');
+    if(bLive)bLive.classList.remove('active');
+  }else{
+    if(shotBox)shotBox.style.display='none';
+    if(liveBox)liveBox.style.display='block';
+    if(bLive)bLive.classList.add('active');
+    if(bShot)bShot.classList.remove('active');
+  }
+};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){const m=$('shot-modal');if(m)m.classList.remove('open');}});
+</script>
+<div id="shot-modal" class="shot-lightbox" onclick="closeShotModal(event)">
+  <div class="shot-lightbox-content" onclick="event.stopPropagation()">
+    <div class="shot-lightbox-head">
+      <span id="shot-modal-title" style="font-family:monospace;font-size:.84rem;color:var(--ink);max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></span>
+      <div style="display:flex;gap:12px;align-items:center">
+        <a id="shot-modal-download" href="#" target="_blank" download="shiftshield-screenshot.png" style="font-size:.82rem;color:var(--teal);text-decoration:none;font-weight:600">Download PNG</a>
+        <button data-close="true" onclick="closeShotModal()" style="padding:2px 8px;font-size:1.1rem;line-height:1;border-radius:4px;border:none;background:var(--line);color:var(--ink);cursor:pointer">&times;</button>
+      </div>
+    </div>
+    <div class="shot-lightbox-body">
+      <img id="shot-modal-img" src="" alt="Fullscreen website capture">
+    </div>
+  </div>
+</div>
+</body></html>

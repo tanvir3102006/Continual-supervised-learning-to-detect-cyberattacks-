@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShiftShield | Continual Attack-Detection Dashboard</title>
+<style>
+:root{--bg:#f2f4fb;--panel:#ffffff;--ink:#1b2340;--mute:#5f6a8a;--line:#d8ddee;--teal:#3b4cca;--rust:#d6336c;--ok:#12906a;--amber:#b86e00}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",Helvetica,Arial,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:20px 18px 60px}
+header.brand-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--line);flex-wrap:wrap;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none}
+.brand-logo{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#5c6ceb);color:#fff;font-size:18px;box-shadow:0 2px 6px rgba(59,76,202,0.25)}
+.brand-name{font-weight:700;font-size:1.3rem;letter-spacing:-0.02em;color:var(--ink)}
+.brand-name span{color:var(--teal)}
+.brand-tag{font-size:0.75rem;font-weight:600;padding:2px 7px;border-radius:12px;background:#e2e6fa;color:var(--teal);margin-left:6px;vertical-align:middle;text-transform:uppercase;letter-spacing:0.04em}
+nav.nav-links{display:flex;align-items:center;gap:16px;font-size:0.92rem}
+nav.nav-links a{color:var(--mute);text-decoration:none;transition:color .2s;font-weight:500}
+nav.nav-links a:hover{color:var(--teal)}
+nav.nav-links a.active{font-weight:600;color:var(--ink);border-bottom:2px solid var(--teal);padding-bottom:2px}
+h1{font:600 clamp(1.7rem,4vw,2.4rem)/1.15 Georgia,serif;margin:0 0 6px}
+h2{font:600 1.05rem Georgia,serif;margin:0 0 10px}
+p.lead{margin:0 0 18px;color:var(--mute);max-width:70ch}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px;margin-bottom:16px}
+button{font:inherit;padding:8px 16px;border:1px solid var(--teal);background:var(--teal);color:var(--bg);border-radius:6px;cursor:pointer}
+button.ghost{background:transparent;color:var(--teal)}button:disabled{opacity:.5;cursor:default}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--rust);outline-offset:2px}
+.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.stat{margin-left:auto;color:var(--mute);text-align:right;font-size:.88rem}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:16px}@media(max-width:760px){.cols{grid-template-columns:1fr}}
+.att{display:flex;gap:8px;align-items:flex-start;margin:5px 0}.att small{display:block;color:var(--mute)}
+.sl{display:grid;grid-template-columns:190px 1fr 56px;gap:8px;align-items:center;margin:6px 0}.sl output{text-align:right;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%}
+canvas{width:100%;height:290px;display:block}
+.key{display:flex;gap:18px;color:var(--mute);font-size:.85rem;margin-top:6px;flex-wrap:wrap}.key i{display:inline-block;width:18px;height:3px;vertical-align:middle;margin-right:6px}
+table{border-collapse:collapse;width:100%;font-size:.88rem}th,td{padding:4px 8px;border-bottom:1px solid var(--line);text-align:left}th{font-weight:600}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.good{color:var(--ok)}.bad{color:var(--rust)}.mute{color:var(--mute)}
+.row{display:grid;grid-template-columns:100px 1fr 1fr;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}
+.bg{height:12px;background:var(--line);border-radius:3px;position:relative}.bg b{position:absolute;inset:0 auto 0 0;border-radius:3px}.bg span{position:absolute;right:4px;top:-5px;font-size:.72rem}
+.cm td,.cm th{text-align:center;padding:5px 4px;border:1px solid var(--line)}.cm th:first-child{text-align:left}
+details summary{cursor:pointer;font:600 1.05rem Georgia,serif}details ol{margin:10px 0 0;padding-left:20px}details li{margin:5px 0}
+#msg{color:var(--rust);margin:8px 0 0}
+</style></head><body><main>
+<header class="brand-nav">
+  <div class="brand">
+    <div class="brand-logo">🛡️</div>
+    <div>
+      <span class="brand-name">Shift<span>Shield</span></span>
+      <span class="brand-tag">Continual IDS</span>
+    </div>
+  </div>
+  <nav class="nav-links">
+    <a href="/" class="active">IDS Dashboard</a>
+    <a href="/scanner">Threat Scanner</a>
+  </nav>
+</header>
+<h1>ShiftShield: Continual Learning for Cyberattack Detection</h1>
+<p class="lead">Pick the attacks that will hit the network, press Start, then feed traffic in batches. Attack types arrive one after another and traffic drift simulates real-world distribution shift. Two identical detectors watch the same flows: ShiftShield (with reservoir replay) preserves memory of past attack types, while the naive model experiences catastrophic forgetting.</p>
+
+
+<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+  <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:20px;font-size:.82rem;font-weight:600;background:#e3fcef;color:#0e6245;border:1px solid #abedd0">
+    <span style="font-size:.7rem">🟢</span> Active Dataset: <span id="ds-label">CIC-IDS2017 (Real Flows)</span>
+  </span>
+  <span class="mute" style="font-size:.82rem">Real-world network attack packet flows loaded directly from MachineLearningCSV</span>
+</div>
+
+<section><h2>Set up the scenario</h2>
+<div class="cols"><div><div id="atts"></div><button id="all" class="ghost" style="margin-top:8px">Select all attacks</button></div><div id="sliders"></div></div>
+<div class="bar" style="margin-top:14px"><button id="start">Start new session</button><span class="mute">Attack types appear in the order listed.</span></div><p id="msg" role="alert"></p></section>
+
+<section><div class="bar"><button id="b1" disabled>Next batch</button><button id="bp" class="ghost" disabled>Run one phase</button><button id="bl" class="ghost" disabled>Go live</button>
+<span class="stat" id="stat"></span></div></section>
+
+<section><h2>Current scores</h2><table id="kpi"></table></section>
+
+<section><div class="bar"><h2 style="margin:0">Performance over time</h2><select id="metric" aria-label="Metric" style="margin-left:auto;font:inherit;padding:4px">
+<option value="acc">Accuracy</option><option value="err">Error rate</option><option value="tpr">Attack detection rate</option><option value="fpr">False alarm rate</option><option value="preq">Online accuracy (before learning)</option></select></div>
+<canvas id="c" role="img" aria-label="Chosen metric over time for both detectors"></canvas>
+<div class="key"><span><i style="background:var(--teal)"></i>With replay</span><span><i style="background:var(--rust)"></i>Without replay</span><span>Dashed lines mark new attack types. Shaded area is traffic drift.</span></div></section>
+
+<div class="cols"><section><h2>Detection rate per attack type</h2><div id="recall"><p class="mute">Run a batch to see results.</p></div></section>
+<section><h2>Incoming flows (latest batch)</h2><table id="feed"><tr><td class="mute">Run a batch to see live flows.</td></tr></table></section></div>
+
+<section><h2>Confusion matrix (detector with replay)</h2><p class="mute" style="margin:0 0 8px">Rows are the true class, columns are what the detector said. Strong diagonal means few mistakes.</p><div style="overflow-x:auto"><table id="cm" class="cm"></table></div></section>
+</main>
+<script>
+const $=id=>document.getElementById(id);let S=null,timer=null;
+const col=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const ATT=[[1,'DoS','One source floods the target: very high connection and error rates'],[2,'DDoS','Flood from many sources at once: like DoS but many source IPs'],[3,'PortScan','Probing many ports to map the network'],[4,'BruteForce','Repeated failed logins guessing passwords'],[5,'SQLInjection','Web requests with unusual, high-entropy payloads'],[6,'Botnet','Low-volume periodic beacons to a controller'],[7,'Exfiltration','Large outbound transfers of encrypted-looking data']];
+const SL=[['batch','Flows per batch',50,1000,50,200],['noise','Traffic noise (harder when high)',.6,2,.1,1.2],['drift','Drift per step',0,.1,.01,.04],['phase','Steps between new attacks',3,15,1,8],['lr','Learning rate',.005,.1,.005,.03],['cap','Replay memory per attack',20,1000,20,300]];
+$('atts').innerHTML=ATT.map(a=>`<label class="att"><input type="checkbox" value="${a[0]}" ${a[0]<=4?'checked':''}><span><b>${a[1]}</b><small>${a[2]}</small></span></label>`).join('');
+$('sliders').innerHTML=SL.map(s=>`<div class="sl"><label for="${s[0]}">${s[1]}</label><input id="${s[0]}" type="range" min="${s[2]}" max="${s[3]}" step="${s[4]}" value="${s[5]}"><output id="o_${s[0]}">${s[5]}</output></div>`).join('');
+SL.forEach(s=>$(s[0]).oninput=()=>$('o_'+s[0]).textContent=$(s[0]).value);
+$('all').onclick=()=>document.querySelectorAll('#atts input').forEach(i=>i.checked=true);
+async function api(u){try{const r=await fetch(u);if(!r.ok)throw new Error(r.status);S=await r.json();$('msg').textContent='';render()}catch(e){$('msg').textContent='Could not reach ShiftShield backend ('+e.message+'). Check that the Java server is running.';stopLive()}}
+function stopLive(){clearInterval(timer);timer=null;$('bl').textContent='Go live'}
+$('start').onclick=()=>{stopLive();const cl=[...document.querySelectorAll('#atts input:checked')].map(i=>i.value);if(!cl.length){$('msg').textContent='Choose at least one attack type.';return}
+ api('/api/start?classes='+cl.join(',')+'&'+SL.map(s=>s[0]+'='+$(s[0]).value).join('&'))};
+$('b1').onclick=()=>api('/api/step?n=1');$('bp').onclick=()=>api('/api/step?n='+S.cfg.phase);
+$('bl').onclick=()=>{if(timer)return stopLive();$('bl').textContent='Pause';timer=setInterval(()=>{S.step>=S.total?stopLive():api('/api/step?n=1')},900)};
+const pct=v=>(v*100).toFixed(1)+'%',nm=i=>S.classNames[i];
+function draw(){const cv=$('c'),r=devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;cv.width=W*r;cv.height=H*r;const g=cv.getContext('2d');g.scale(r,r);g.clearRect(0,0,W,H);
+ const k=$('metric').value,hs=S.history,L=42,B=H-22,T=8,R=W-8,N=Math.max(S.total-1,1),X=i=>L+(R-L)*i/N;
+ let mx=1;if(k==='err'||k==='fpr'){mx=Math.max(.05,...hs.map(h=>Math.max(h.c[k],h.n[k])))*1.2;mx=Math.min(1,mx)}const Y=v=>B-(B-T)*v/mx;
+ g.font='12px sans-serif';g.fillStyle=col('--mute');g.strokeStyle=col('--line');g.lineWidth=1;
+ for(let i=0;i<=4;i++){const v=mx*i/4;g.beginPath();g.moveTo(L,Y(v));g.lineTo(R,Y(v));g.stroke();g.fillText((v*100).toFixed(mx<.3?1:0)+'%',2,Y(v)+4)}
+ const ds=S.cfg.phase*(S.order.length-1);g.globalAlpha=.12;g.fillStyle=col('--rust');if(ds<=N)g.fillRect(X(ds),T,R-X(ds),B-T);g.globalAlpha=1;g.fillStyle=col('--mute');
+ g.setLineDash([4,4]);for(let j=2;j<S.order.length;j++){const s=(j-1)*S.cfg.phase;g.beginPath();g.moveTo(X(s),T);g.lineTo(X(s),B);g.stroke();g.fillText('+'+nm(S.order[j]),X(s)+3,T+12)}g.setLineDash([]);
+ [['c','--teal'],['n','--rust']].forEach(([m,c])=>{g.strokeStyle=col(c);g.lineWidth=2.5;g.beginPath();hs.forEach((h,i)=>i?g.lineTo(X(h.step),Y(h[m][k])):g.moveTo(X(h.step),Y(h[m][k])));g.stroke()})}
+function render(){const done=S.step>=S.total,has=S.history.length>0;
+ if(S.dataSource)$('ds-label').textContent=S.dataSource;
+ ['b1','bp','bl'].forEach(i=>$(i).disabled=done);
+ $('stat').innerHTML=`Step ${S.step} of ${S.total}<br>${S.flows.toLocaleString()} flows analysed<br>Session seed ${S.seed}`+(done?'<br><b>Session complete</b>':'');
+ if(!has){['kpi','cm','feed'].forEach(i=>$(i).innerHTML='');$('recall').innerHTML='<p class="mute">Run a batch to see results.</p>';draw();return}
+ const h=S.history[S.history.length-1],row=(l,k,bad)=>{const f=(v,o)=>`<td class="n ${(v>o?'':'')}">${pct(v)}</td>`;return `<tr><td>${l}</td>${f(h.c[k])}${f(h.n[k])}</tr>`};
+ $('kpi').innerHTML='<tr><th></th><th class="n">With replay</th><th class="n">Without replay</th></tr>'+[['Accuracy','acc'],['Error rate','err'],['Attack detection rate','tpr'],['False alarm rate','fpr'],['Online accuracy (before learning)','preq']].map(r=>row(r[0],r[1])).join('');
+ draw();
+ const [rc,rn]=S.recall,bar=(v,c)=>v<0?'<div class="bg"></div>':`<div class="bg"><b style="width:${v*100}%;background:var(${c})"></b><span>${Math.round(v*100)}%</span></div>`;
+ $('recall').innerHTML='<div class="row"><span></span><b class="good">With replay</b><b class="bad">Without</b></div>'+S.order.map(c=>`<div class="row"><span>${nm(c)}</span>${bar(rc[c],'--teal')}${bar(rn[c],'--rust')}</div>`).join('');
+ const act=S.order.slice(0,S.active);
+ $('cm').innerHTML='<tr><th>True \\ Predicted</th>'+act.map(c=>`<th>${nm(c)}</th>`).join('')+'</tr>'+act.map(a=>{const rs=S.cm[a].reduce((x,y)=>x+y,0)||1;return `<tr><th>${nm(a)}</th>`+act.map(b=>{const v=S.cm[a][b];return `<td style="background:color-mix(in srgb,var(${a===b?'--teal':'--rust'}) ${Math.round(v/rs*70)}%,transparent)">${v}</td>`}).join('')+'</tr>'}).join('');
+ $('feed').innerHTML='<tr><th>Actual</th><th>Conns</th><th>Sources</th><th>Entropy</th><th>With replay</th><th>Without</th></tr>'+S.feed.map(f=>{const v=(p)=>`<td class="${p===f.truth?'good':'bad'}">${p?'ALERT: '+nm(p):'allowed'}${p===f.truth?'':' (wrong)'}</td>`;return `<tr><td>${nm(f.truth)}</td><td class="n">${f.conn}</td><td class="n">${f.ips}</td><td class="n">${f.ent}</td>${v(f.cont)}${v(f.naive)}</tr>`}).join('')}
+$('metric').onchange=()=>S&&S.history.length&&draw();addEventListener('resize',()=>S&&draw());
+api('/api/state');
+</script></body></html>
