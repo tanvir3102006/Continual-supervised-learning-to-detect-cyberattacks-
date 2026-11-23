@@ -253,8 +253,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 ---
 
-<div align="center">
-  <sub>Built with ❤️ for advanced cybersecurity research and intrusion defense education.</sub>
-</div>
+
 
 ```
